@@ -19,5 +19,5 @@
     },
     "types": ["vite/client"]
   },
-  "include": ["src", "electron.vite.config.ts", "vitest.config.ts", "tests"]
+  "include": ["src", "electron.vite.config.ts", "vitest.config.ts", "tests", "scripts"]
 }
