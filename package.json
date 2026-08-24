@@ -13,7 +13,7 @@
     "package": "npm run build && electron-builder --win nsis portable",
     "package:dir": "npm run build && electron-builder --dir --config.win.signAndEditExecutable=false",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --configLoader runner",
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run test && npm run build"
   },
