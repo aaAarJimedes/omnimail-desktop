@@ -1,0 +1,76 @@
+{
+  "name": "omnimail-desktop",
+  "version": "0.1.0",
+  "description": "A secure, local-first multi-account desktop email client.",
+  "main": "out/main/index.js",
+  "author": "OmniMail contributors",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "package": "npm run build && electron-builder --win nsis portable",
+    "package:dir": "npm run build && electron-builder --dir --config.win.signAndEditExecutable=false",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run test && npm run build"
+  },
+  "build": {
+    "appId": "dev.omnimail.desktop",
+    "productName": "OmniMail",
+    "directories": {
+      "output": "release"
+    },
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "artifactName": "OmniMail-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "OmniMail-Portable-${version}-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "dompurify": "3.4.14",
+    "imapflow": "1.7.2",
+    "lucide-react": "1.33.0",
+    "mailparser": "3.9.15",
+    "nodemailer": "9.0.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.0"
+  },
+  "devDependencies": {
+    "@types/mailparser": "3.4.6",
+    "@types/node": "26.2.0",
+    "@types/nodemailer": "8.0.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "5.2.0",
+    "@vitest/coverage-v8": "3.2.7",
+    "electron": "43.4.1",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "typescript": "7.0.2",
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  }
+}
