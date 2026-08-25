@@ -15,6 +15,7 @@ Preload contextBridge（最小白名单）
         ▼
 Electron 主进程
  ├─ AccountStore：非敏感账户元数据
+ ├─ AccountDiscovery：地址规则与公开 MX 托管识别
  ├─ SecretVault：safeStorage 加密凭据
  ├─ OAuthService：PKCE、令牌交换与刷新
  ├─ MailService：IMAPFlow + Nodemailer
@@ -28,8 +29,8 @@ Electron 主进程
 
 ## 账户生命周期
 
-1. 用户选择提供商并输入邮箱。
-2. 授权码账户把密码一次性发给主进程；OAuth 账户使用 PKCE 打开服务商授权页，并由 127.0.0.1 临时端口接收回调。
+1. 用户先输入邮箱地址；已知域名直接识别，EDU/自定义域名仅查询公开 MX 记录以判断 Google 或 Microsoft 托管，失败时回退到手动配置。
+2. 授权码账户把密码一次性发给主进程；OAuth 账户使用 PKCE 打开系统浏览器，并由 loopback 临时端口接收回调（Google 使用 `127.0.0.1`，Microsoft 使用 `localhost`）。
 3. 主进程创建账户元数据，并使用 `safeStorage.encryptString` 加密凭据。
 4. 应用立刻执行 IMAP 连通性测试。失败时回滚账户和凭据，不留下半配置记录。
 5. 删除账户时同时删除加密凭据和本地邮件摘要。
@@ -60,7 +61,7 @@ Electron 主进程
 
 ## OAuth 注意事项
 
-- 客户端 ID 属于 OAuth 应用身份，开源代码不内置项目维护者的客户端 ID 或密钥。
+- 客户端 ID 是公开应用标识，可通过构建环境编入正式发行包；仓库不提交已注册的具体值，也绝不把客户端密钥当作桌面应用秘密。
 - Google 桌面应用和 Microsoft 公共客户端应配置 loopback / 移动桌面回调能力。
 - `state` 和 PKCE verifier 每次随机生成。
 - OAuth 句柄只在主进程内存保存十分钟，访问令牌不会返回渲染器。

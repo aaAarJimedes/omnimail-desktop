@@ -7,7 +7,7 @@
 1. 登录 QQ 邮箱网页，进入“设置/账户”或“账户与安全”。
 2. 开启 IMAP/SMTP 服务并按提示验证身份。
 3. 生成客户端授权码。
-4. 在 OmniMail 选择“QQ 邮箱”，填写完整邮箱地址和授权码。
+4. 在 OmniMail 输入完整邮箱地址，识别为“QQ 邮箱”后填写授权码。向导中的按钮可以直接打开 QQ 邮箱网页。
 
 默认服务器：
 
@@ -21,7 +21,7 @@
 1. 登录 163 邮箱网页并进入 POP3/SMTP/IMAP 设置。
 2. 开启 IMAP/SMTP 服务。
 3. 按提示设置或生成客户端授权密码。
-4. 在 OmniMail 选择“网易 163”，填写完整邮箱地址和客户端授权密码。
+4. 在 OmniMail 输入完整邮箱地址，识别为“网易 163”后填写客户端授权密码。向导中的按钮可以直接打开网易邮箱网页。
 
 默认服务器：
 
@@ -32,7 +32,9 @@
 
 ### OAuth 2.0（推荐）
 
-构建者需要在 Google Cloud 项目中配置 OAuth 同意屏幕，创建“桌面应用”客户端，并启用所需 Gmail 范围。添加账户时填写客户端 ID；若配置要求客户端密钥，也一并填写。
+构建者需要在 Google Cloud 项目中配置 OAuth 同意屏幕，创建“桌面应用”客户端，并启用所需 Gmail 范围。构建前设置 `OMNIMAIL_GOOGLE_CLIENT_ID`；最终用户随后只需在系统浏览器中登录，不需要填写客户端 ID。
+
+未配置客户端 ID 的开发构建仍可展开“使用自己的 OAuth 客户端”，临时填写开发者自己的客户端 ID。不要复制其他软件的客户端 ID。
 
 OmniMail 请求 `openid`、`email` 和 `https://mail.google.com/`，使用 PKCE 与 loopback 回调。未发布/未验证的 OAuth 应用可能只允许测试用户登录。
 
@@ -50,10 +52,10 @@ OmniMail 请求 `openid`、`email` 和 `https://mail.google.com/`，使用 PKCE 
 需要在 Microsoft Entra / Azure 中注册公共客户端：
 
 1. 创建应用注册并记录 Application (client) ID。
-2. 启用移动和桌面应用的公共客户端流。
+2. 添加“移动和桌面应用”平台、配置系统浏览器重定向 `http://localhost`，并启用公共客户端流。
 3. 添加委托权限 `IMAP.AccessAsUser.All` 与 `SMTP.Send`。
 4. 根据租户策略完成用户或管理员同意。
-5. 在 OmniMail 选择 Outlook 并填写客户端 ID。
+5. 构建前设置 `OMNIMAIL_MICROSOFT_CLIENT_ID`。最终用户在 OmniMail 输入邮箱地址后，只需在系统浏览器中完成登录。
 
 默认服务器：
 
@@ -64,7 +66,9 @@ OmniMail 请求 `openid`、`email` 和 `https://mail.google.com/`，使用 PKCE 
 
 ## EDU / 学校邮箱
 
-先判断学校邮箱托管方式：
+OmniMail 会先查询邮箱域名的公开 MX 记录。若识别为 Google Workspace 或 Microsoft 365，将自动切换到对应的浏览器 OAuth 登录。查询失败不会阻止添加账户。
+
+也可以根据学校说明判断托管方式：
 
 - 登录页和帮助文档指向 Google Workspace：按 Gmail 方式添加。
 - 指向 Microsoft 365 / Outlook：按 Outlook 方式添加。

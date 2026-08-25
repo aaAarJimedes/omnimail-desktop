@@ -8,10 +8,15 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const packageJson = JSON.parse(await fs.readFile(path.join(projectRoot, 'package.json'), 'utf8'))
 const runtimeDependencies = Object.keys(packageJson.dependencies ?? {})
 const sharedAlias = path.join(projectRoot, 'src/shared')
+const oauthDefines = {
+  'process.env.OMNIMAIL_GOOGLE_CLIENT_ID': JSON.stringify(process.env.OMNIMAIL_GOOGLE_CLIENT_ID ?? ''),
+  'process.env.OMNIMAIL_MICROSOFT_CLIENT_ID': JSON.stringify(process.env.OMNIMAIL_MICROSOFT_CLIENT_ID ?? '')
+}
 
 await build({
   configFile: false,
   root: projectRoot,
+  define: oauthDefines,
   resolve: { alias: { '@shared': sharedAlias } },
   build: {
     ssr: path.join(projectRoot, 'src/main/index.ts'),

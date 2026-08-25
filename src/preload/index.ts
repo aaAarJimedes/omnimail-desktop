@@ -3,7 +3,9 @@ import type { OmniMailApi, SyncProgress } from '../shared/types'
 
 const api: OmniMailApi = {
   bootstrap: () => ipcRenderer.invoke('app:bootstrap'),
+  discoverAccount: (email) => ipcRenderer.invoke('account:discover', email),
   authorizeOAuth: (request) => ipcRenderer.invoke('oauth:authorize', request),
+  openProviderHelp: (provider) => ipcRenderer.invoke('provider:open-help', provider),
   addAccount: (request) => ipcRenderer.invoke('account:add', request),
   removeAccount: (accountId) => ipcRenderer.invoke('account:remove', accountId),
   testAccount: (accountId) => ipcRenderer.invoke('account:test', accountId),

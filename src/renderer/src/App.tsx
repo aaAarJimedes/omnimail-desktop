@@ -248,6 +248,7 @@ export default function App(): React.JSX.Element {
       {showAccountWizard && (
         <AccountWizard
           providers={snapshot.providers}
+          oauthConfigured={snapshot.oauthConfigured}
           onClose={() => setShowAccountWizard(false)}
           onAdded={(account) => {
             setSnapshot((current) => current ? { ...current, accounts: [...current.accounts, account] } : current)

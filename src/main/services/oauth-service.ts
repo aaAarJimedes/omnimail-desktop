@@ -3,6 +3,7 @@ import { createServer, type Server } from 'node:http'
 import { shell } from 'electron'
 import type { AccountRecord, OAuthRequest, OAuthResult } from '../../shared/types'
 import { validateOAuth } from '../../shared/validation'
+import type { OAuthClientIds } from '../oauth-config'
 import type { OAuthCredential } from './secret-vault'
 import { SecretVault } from './secret-vault'
 
@@ -10,6 +11,8 @@ interface OAuthProviderConfig {
   authorizationEndpoint: string
   tokenEndpoint: string
   scope: string
+  loopbackHost: '127.0.0.1' | 'localhost'
+  callbackPath: string
 }
 
 interface PendingAuthorization {
@@ -32,13 +35,17 @@ const CONFIG: Record<OAuthRequest['provider'], OAuthProviderConfig> = {
   gmail: {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
-    scope: 'openid email https://mail.google.com/'
+    scope: 'openid email https://mail.google.com/',
+    loopbackHost: '127.0.0.1',
+    callbackPath: '/oauth/callback'
   },
   outlook: {
     authorizationEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     scope:
-      'openid email offline_access https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/SMTP.Send'
+      'openid email offline_access https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/SMTP.Send',
+    loopbackHost: 'localhost',
+    callbackPath: '/'
   }
 }
 
@@ -72,7 +79,11 @@ async function postToken(endpoint: string, params: URLSearchParams): Promise<Tok
   return body
 }
 
-async function createLoopbackCallback(expectedState: string): Promise<{
+async function createLoopbackCallback(
+  expectedState: string,
+  hostname: OAuthProviderConfig['loopbackHost'],
+  callbackPath: string
+): Promise<{
   redirectUri: string
   waitForCode: Promise<string>
   close: () => void
@@ -87,8 +98,8 @@ async function createLoopbackCallback(expectedState: string): Promise<{
 
   server = createServer((request, response) => {
     try {
-      const url = new URL(request.url || '/', 'http://127.0.0.1')
-      if (url.pathname !== '/oauth/callback') {
+      const url = new URL(request.url || '/', `http://${hostname}`)
+      if (url.pathname !== callbackPath) {
         response.writeHead(404).end()
         return
       }
@@ -111,7 +122,7 @@ async function createLoopbackCallback(expectedState: string): Promise<{
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
-    server.listen(0, '127.0.0.1', resolve)
+    server.listen(0, hostname, resolve)
   })
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('无法启动 OAuth 本地回调')
@@ -121,7 +132,7 @@ async function createLoopbackCallback(expectedState: string): Promise<{
   waitForCode.finally(() => clearTimeout(timeout)).catch(() => undefined)
 
   return {
-    redirectUri: `http://127.0.0.1:${address.port}/oauth/callback`,
+    redirectUri: `http://${hostname}:${address.port}${callbackPath === '/' ? '' : callbackPath}`,
     waitForCode,
     close: () => server.close()
   }
@@ -130,19 +141,26 @@ async function createLoopbackCallback(expectedState: string): Promise<{
 export class OAuthService {
   private readonly pending = new Map<string, PendingAuthorization>()
 
-  constructor(private readonly vault: SecretVault) {}
+  constructor(
+    private readonly vault: SecretVault,
+    private readonly configuredClientIds: OAuthClientIds
+  ) {}
 
   async authorize(raw: OAuthRequest): Promise<OAuthResult> {
     const request = validateOAuth(raw)
     const provider = CONFIG[request.provider]
+    const clientId = request.clientId || this.configuredClientIds[request.provider]
+    if (!clientId) {
+      throw new Error('此构建尚未配置该服务商的 OAuth 客户端，请使用应用专用密码或展开开发者选项')
+    }
     const state = base64Url(randomBytes(24))
     const verifier = base64Url(randomBytes(48))
     const challenge = base64Url(createHash('sha256').update(verifier).digest())
-    const callback = await createLoopbackCallback(state)
+    const callback = await createLoopbackCallback(state, provider.loopbackHost, provider.callbackPath)
     try {
       const authorizeUrl = new URL(provider.authorizationEndpoint)
       authorizeUrl.search = new URLSearchParams({
-        client_id: request.clientId,
+        client_id: clientId,
         redirect_uri: callback.redirectUri,
         response_type: 'code',
         scope: provider.scope,
@@ -156,7 +174,7 @@ export class OAuthService {
       await shell.openExternal(authorizeUrl.toString(), { activate: true })
       const code = await callback.waitForCode
       const params = new URLSearchParams({
-        client_id: request.clientId,
+        client_id: clientId,
         code,
         redirect_uri: callback.redirectUri,
         grant_type: 'authorization_code',
@@ -173,7 +191,7 @@ export class OAuthService {
           accessToken: token.access_token!,
           refreshToken: token.refresh_token,
           expiresAt,
-          clientId: request.clientId,
+          clientId,
           clientSecret: request.clientSecret,
           tokenEndpoint: provider.tokenEndpoint,
           scope: token.scope || provider.scope

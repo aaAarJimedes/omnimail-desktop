@@ -1,6 +1,6 @@
 {
   "name": "omnimail-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A secure, local-first multi-account desktop email client.",
   "main": "out/main/index.js",
   "author": "OmniMail contributors",

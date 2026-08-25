@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detectProvider, getProvider, PROVIDERS } from '@shared/providers'
+import { detectProvider, detectProviderFromMx, getProvider, PROVIDERS } from '@shared/providers'
 
 describe('provider catalog', () => {
   it('contains every required provider family', () => {
@@ -25,5 +25,12 @@ describe('provider catalog', () => {
     ['person@example.org', 'custom']
   ])('detects %s as %s', (email, expected) => {
     expect(detectProvider(email)).toBe(expected)
+  })
+
+  it('recognizes hosted Google and Microsoft domains from MX exchanges', () => {
+    expect(detectProviderFromMx(['aspmx.l.google.com.'])).toBe('gmail')
+    expect(detectProviderFromMx(['school-edu.mail.protection.outlook.com'])).toBe('outlook')
+    expect(detectProviderFromMx(['mx.example.org'])).toBeUndefined()
+    expect(detectProviderFromMx(['google.com.attacker.example'])).toBeUndefined()
   })
 })

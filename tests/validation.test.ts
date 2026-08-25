@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { assertEmail, validateCreateAccount, validateListRequest, validateMessageRef, validateSendRequest } from '@shared/validation'
+import {
+  assertEmail,
+  validateCreateAccount,
+  validateListRequest,
+  validateMessageRef,
+  validateOAuth,
+  validateSendRequest
+} from '@shared/validation'
 
 describe('IPC input validation', () => {
   it('normalizes valid email addresses', () => {
@@ -20,6 +27,15 @@ describe('IPC input validation', () => {
         authMode: 'password'
       })
     ).toThrow(/授权码/)
+  })
+
+  it('allows a build-configured OAuth client without a renderer client ID', () => {
+    expect(validateOAuth({ provider: 'gmail', email: 'person@gmail.com' })).toEqual({
+      provider: 'gmail',
+      email: 'person@gmail.com',
+      clientId: undefined,
+      clientSecret: undefined
+    })
   })
 
   it('caps list limits and query length', () => {

@@ -74,3 +74,14 @@ export function detectProvider(email: string): ProviderId {
   if (domain.endsWith('.edu') || domain.endsWith('.edu.cn')) return 'edu'
   return 'custom'
 }
+
+export function detectProviderFromMx(exchanges: string[]): 'gmail' | 'outlook' | undefined {
+  for (const rawExchange of exchanges) {
+    const exchange = rawExchange.trim().toLowerCase().replace(/\.$/, '')
+    if (exchange === 'google.com' || exchange.endsWith('.google.com') || exchange.endsWith('.googlemail.com')) {
+      return 'gmail'
+    }
+    if (exchange === 'outlook.com' || exchange.endsWith('.outlook.com')) return 'outlook'
+  }
+  return undefined
+}

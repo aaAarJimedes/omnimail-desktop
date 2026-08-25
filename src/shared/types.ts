@@ -1,5 +1,6 @@
 export type ProviderId = 'qq' | '163' | 'outlook' | 'gmail' | 'edu' | 'custom'
 export type AuthMode = 'password' | 'oauth2'
+export type OAuthProviderId = 'gmail' | 'outlook'
 
 export interface MailServerConfig {
   host: string
@@ -47,9 +48,9 @@ export interface CreateAccountRequest {
 }
 
 export interface OAuthRequest {
-  provider: 'gmail' | 'outlook'
+  provider: OAuthProviderId
   email: string
-  clientId: string
+  clientId?: string
   clientSecret?: string
 }
 
@@ -57,6 +58,12 @@ export interface OAuthResult {
   handle: string
   email: string
   expiresAt: number
+}
+
+export interface AccountDiscovery {
+  email: string
+  provider: ProviderId
+  source: 'address' | 'mx' | 'fallback'
 }
 
 export interface FolderInfo {
@@ -146,12 +153,15 @@ export interface SyncProgress {
 export interface AppSnapshot {
   accounts: AccountRecord[]
   providers: ProviderDefinition[]
+  oauthConfigured: Record<OAuthProviderId, boolean>
   appVersion: string
 }
 
 export interface OmniMailApi {
   bootstrap(): Promise<AppSnapshot>
+  discoverAccount(email: string): Promise<AccountDiscovery>
   authorizeOAuth(request: OAuthRequest): Promise<OAuthResult>
+  openProviderHelp(provider: 'qq' | '163'): Promise<void>
   addAccount(request: CreateAccountRequest): Promise<AccountRecord>
   removeAccount(accountId: string): Promise<void>
   testAccount(accountId: string): Promise<void>

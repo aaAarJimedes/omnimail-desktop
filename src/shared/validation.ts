@@ -46,12 +46,14 @@ export function validateCreateAccount(value: CreateAccountRequest): CreateAccoun
 export function validateOAuth(value: OAuthRequest): OAuthRequest {
   if (!value || !['gmail', 'outlook'].includes(value.provider)) throw new Error('OAuth 提供商无效')
   const clientId = String(value.clientId ?? '').trim()
-  if (!clientId || clientId.length > 512) throw new Error('请输入有效的 OAuth 客户端 ID')
+  if (clientId.length > 512) throw new Error('OAuth 客户端 ID 无效')
+  const clientSecret = value.clientSecret?.trim()
+  if (clientSecret && clientSecret.length > 1024) throw new Error('OAuth 客户端密钥无效')
   return {
     provider: value.provider,
     email: assertEmail(value.email),
-    clientId,
-    clientSecret: value.clientSecret?.trim() || undefined
+    clientId: clientId || undefined,
+    clientSecret: clientSecret || undefined
   }
 }
 

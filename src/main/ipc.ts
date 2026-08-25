@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { app, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
 import { PROVIDERS } from '../shared/providers'
 import type { CreateAccountRequest, OAuthRequest, PickedAttachment, SendMessageRequest } from '../shared/types'
 import { assertId, validateMessageRef } from '../shared/validation'
@@ -11,6 +11,8 @@ import { MessageCache } from './services/message-cache'
 import { OAuthService } from './services/oauth-service'
 import { SecretVault, type StoredCredential } from './services/secret-vault'
 import { isTrustedRendererUrl } from './security'
+import { oauthAvailability, resolveOAuthClientIds } from './oauth-config'
+import { discoverAccount } from './services/account-discovery'
 
 interface ApprovedAttachment {
   path: string
@@ -20,6 +22,11 @@ interface ApprovedAttachment {
 }
 
 const approvedAttachments = new Map<string, ApprovedAttachment>()
+
+const PROVIDER_HELP_URLS = {
+  qq: 'https://mail.qq.com/',
+  '163': 'https://email.163.com/'
+} as const
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {
   const url = event.senderFrame?.url || ''
@@ -42,7 +49,8 @@ export function registerIpc(): void {
   const accounts = new AccountStore(userData)
   const vault = new SecretVault(userData)
   const cache = new MessageCache(userData)
-  const oauth = new OAuthService(vault)
+  const oauthClientIds = resolveOAuthClientIds()
+  const oauth = new OAuthService(vault, oauthClientIds)
   const mail = new MailService(accounts, vault, oauth, cache, resolveAttachments)
 
   const handle = <T extends unknown[], R>(
@@ -58,8 +66,18 @@ export function registerIpc(): void {
   handle('app:bootstrap', async () => ({
     accounts: await accounts.list(),
     providers: PROVIDERS,
+    oauthConfigured: oauthAvailability(oauthClientIds),
     appVersion: app.getVersion()
   }))
+
+  handle<[string], Awaited<ReturnType<typeof discoverAccount>>>('account:discover', (_event, email) =>
+    discoverAccount(email)
+  )
+
+  handle<['qq' | '163'], void>('provider:open-help', async (_event, provider) => {
+    if (provider !== 'qq' && provider !== '163') throw new Error('不支持的服务商帮助入口')
+    await shell.openExternal(PROVIDER_HELP_URLS[provider], { activate: true })
+  })
 
   handle<[OAuthRequest], Awaited<ReturnType<OAuthService['authorize']>>>('oauth:authorize', (_event, request) =>
     oauth.authorize(request)
